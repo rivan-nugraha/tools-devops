@@ -13,10 +13,10 @@ async function main() {
         const pathReference = storage.ref(`NSIPIC/${kodeToko}/foto_produk`)
         const listFiles = await pathReference.listAll()
         await _saveImage(listFiles.items)
-        console.log('[SUCCESS] All files Downloaded!')
-        return;
+        console.log('[SUCCESS] All files Downloaded!');
+        return true;
     } catch (err) {
-        console.log("[ERROR]", err.message)
+        console.log(err);
     }
 }
 
@@ -29,7 +29,6 @@ async function _saveImage(listFiles) {
         const imageURL = await file.getDownloadURL()
         fs.mkdirSync(`downloads/${_getFromEnv()}/`, {recursive: true})
         await _downloadImage(imageURL, file.name)
-        console.log(file.name, 'downloaded')
     }
 }
 
@@ -40,8 +39,17 @@ async function _downloadImage(url, name) {
             method: "GET",
             responseType: 'stream'
         }).then(async (response) => {
-            response.data.pipe(fs.createWriteStream(`downloads/${_getFromEnv()}/${name}`, { recursive: true }))
-            resolve(name)
+            if (name.includes(".jpg") || name.includes(".png") || name.includes(".webp") || name.includes("svg")) {
+                response.data.pipe(fs.createWriteStream(`downloads/${_getFromEnv()}/${name}`, { recursive: true }))
+                console.log(name, 'downloaded')
+                resolve(name);
+            }
+            resolve("Not Found")
+            // response.data.pipe(fs.createWriteStream(`downloads/${_getFromEnv()}/${name}`, { recursive: true }))
+            // console.log(name, 'downloaded')
+            // resolve(name);
+        }).catch((err) => {
+            reject(err);
         })
     })
 }
