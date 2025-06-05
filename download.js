@@ -10,19 +10,18 @@ async function getPLimit() {
     return module.default;
 }
 
-async function execDownload() {
+async function execDownload(kode_toko) {
     const pLimit = await getPLimit();
     const limit = pLimit(5);
     try {
-        const storeCode = process.env.KODE_TOKO;
-        if (!storeCode) {
+        if (!kode_toko) {
             throw new Error('KODE_TOKO not set in environment variables.');
         }
 
-        const fileRef = storage.ref(`NSIPIC/${storeCode}/foto_produk`);
+        const fileRef = storage.ref(`NSIPIC/${kode_toko}/foto_produk`);
         const fileList = await fileRef.listAll();
 
-        await downloadImages(fileList.items, storeCode, limit);
+        await downloadImages(fileList.items, kode_toko, limit);
         console.log('[SUCCESS] All files downloaded!');
     } catch (error) {
         console.error('[ERROR]', error.message);

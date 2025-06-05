@@ -13,6 +13,12 @@ async function main() {
 
         const answer = await inquirer.prompt([
             {
+                type:"input",
+                name:"kode_toko",
+                message: "Silahkan masukan kode toko",
+                default: "NQC"
+            },
+            {
                 type: 'list',
                 name: 'mode',
                 message: 'Pilih aksi yang ingin dijalankan:',
@@ -24,11 +30,12 @@ async function main() {
         ]);
         
         const mode = answer.mode;
+        const kode_toko = answer.kode_toko;
 
         if (mode === 'upload') {
-            await execUpload();
+            await execUpload(kode_toko);
         } else if (mode === 'download') {
-            await execDownload();
+            await execDownload(kode_toko);
         }
     } catch (err) {
         console.error('❌ Terjadi kesalahan:', err.message);

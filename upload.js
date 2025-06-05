@@ -24,15 +24,14 @@ async function retry(fn, retries = 3, delayMs = 2000) {
     }
 }
 
-async function execUpload() {
+async function execUpload(kode_toko) {
     const pLimit = await getPLimit();
     const limit = pLimit(5); // concurrency limit
 
     const folderPath = './WEB-MIGRASI';
-    const kodeToko = process.env.KODE_TOKO;
 
-    if (!kodeToko) {
-        console.error('❌ Missing KODE_TOKO in environment variables');
+    if (!kode_toko) {
+        console.error('❌ Kode Toko Belum Di Masukan');
         process.exit(1);
     }
 
@@ -44,7 +43,7 @@ async function execUpload() {
         limit(async () => {
             try {
                 const fileBuffer = await fs.readFile(`${folderPath}/${fileName}`);
-                await uploadImage(fileBuffer, fileName, kodeToko);
+                await uploadImage(fileBuffer, fileName, kode_toko);
                 console.log(`✅ Uploaded: ${fileName}`);
                 successCount++;
             } catch (err) {
@@ -60,6 +59,7 @@ async function execUpload() {
     console.log(`✅ Success: ${successCount}`);
     console.log(`❌ Failed: ${failCount}`);
     console.log('🎉 All tasks completed');
+    process.exit(1);
 }
 
 async function uploadImage(fileBuffer, fileName, kodeToko) {
