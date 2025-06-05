@@ -20,6 +20,42 @@ app.use((req, res, next) => {
     next();
 })
 
+
+app.post('/download', async (req, res) => {
+    try {
+        const kode_toko = req.body.kode_toko;
+        await execDownload(kode_toko);
+        res.status(200).send(`Download Image Kode Toko: ${kode_toko} SUCCESS`)
+    } catch (error) {
+        res.status(500).send(error.message);
+    }
+});
+
+app.post('/upload', async (req, res) => {
+    try {
+        const kode_toko = req.body.kode_toko;
+        await execUpload(kode_toko);
+        res.status(200).send(`Upload Image Kode Toko: ${kode_toko} SUCCESS`)
+    } catch (error) {
+        res.status(500).send(error.message);
+    }
+});
+
+if (!Number(process.env.IS_HTTPS)) {
+    listener = app.listen(port, () => {
+        console.log(`App listening on port: ${port}`);
+    });
+} else {
+    const key = fs.readFileSync("/home/nodeapp/cert/private.key");
+    const cert = fs.readFileSync("/home/nodeapp/cert/fullchain.pem");
+    const ca = fs.readFileSync("/home/nodeapp/cert/ca_bundle.crt");
+    const credentials = { key, cert, ca };
+    const httpsServer = https.createServer(credentials, this.app);
+    listener = httpsServer.listen(port, () =>
+        console.log(`Https app listening on port: ${port}`)
+    );
+}
+
 // async function getInquirer() {
 //     const { default: inquirer } = await import('inquirer');
 //     return inquirer;
@@ -59,28 +95,3 @@ app.use((req, res, next) => {
 //         console.error('❌ Terjadi kesalahan:', err.message);
 //     }
 // }
-
-
-app.post('/download', async (req, res) => {
-    try {
-        const kode_toko = req.body.kode_toko;
-        await execDownload(kode_toko);
-        res.status(200).send(`Download Image Kode Toko: ${kode_toko} SUCCESS`)
-    } catch (error) {
-        res.status(500).send(error.message);
-    }
-});
-
-app.post('/upload', async (req, res) => {
-    try {
-        const kode_toko = req.body.kode_toko;
-        await execUpload(kode_toko);
-        res.status(200).send(`Upload Image Kode Toko: ${kode_toko} SUCCESS`)
-    } catch (error) {
-        res.status(500).send(error.message);
-    }
-});
-
-app.listen(port, () => {
-    console.log(`Example app listening on port ${port}`);
-});
