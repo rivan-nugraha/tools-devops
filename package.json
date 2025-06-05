@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js"
   },
   "author": "",
   "license": "ISC",
@@ -12,6 +13,7 @@
     "axios": "^0.25.0",
     "dotenv": "^10.0.0",
     "firebase": "^8.6.8",
+    "inquirer": "^8.2.6",
     "p-limit": "^6.2.0"
   }
 }

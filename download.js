@@ -1,18 +1,16 @@
-const firebaseConfig = require('./config');
-const firebaseModule = require('firebase');
 const fs = require('fs');
 const axios = require('axios');
 require('dotenv/config');
 
-const firebase = firebaseModule.initializeApp(firebaseConfig);
-const storage = firebase.storage();
+// const firebase = firebaseModule.initializeApp(firebaseConfig);
+const { storage } = require('./firebase');
 
 async function getPLimit() {
     const module = await import('p-limit');
     return module.default;
 }
 
-async function main() {
+async function execDownload() {
     const pLimit = await getPLimit();
     const limit = pLimit(5);
     try {
@@ -81,4 +79,4 @@ function isImage(filename) {
     return /\.(jpg|jpeg|png|webp|svg)$/i.test(filename);
 }
 
-main();
+module.exports = { execDownload };
