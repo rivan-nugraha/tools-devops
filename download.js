@@ -1,57 +1,84 @@
 const firebaseConfig = require('./config');
-const firebaseModule = require('firebase')
-const firebase = firebaseModule.initializeApp(firebaseConfig)
-const fs = require("fs")
-const axios = require("axios")
-const { resolve } = require('path');
-require('dotenv/config')
+const firebaseModule = require('firebase');
+const fs = require('fs');
+const axios = require('axios');
+require('dotenv/config');
+
+const firebase = firebaseModule.initializeApp(firebaseConfig);
+const storage = firebase.storage();
+
+async function getPLimit() {
+    const module = await import('p-limit');
+    return module.default;
+}
 
 async function main() {
+    const pLimit = await getPLimit();
+    const limit = pLimit(5);
     try {
-        const kodeToko = _getFromEnv()
-        const storage = firebase.storage()
-        const pathReference = storage.ref(`NSIPIC/${kodeToko}/foto_produk`)
-        const listFiles = await pathReference.listAll()
-        await _saveImage(listFiles.items)
-        console.log('[SUCCESS] All files Downloaded!');
-        return true;
-    } catch (err) {
-        console.log(err);
+        const storeCode = process.env.KODE_TOKO;
+        if (!storeCode) {
+            throw new Error('KODE_TOKO not set in environment variables.');
+        }
+
+        const fileRef = storage.ref(`NSIPIC/${storeCode}/foto_produk`);
+        const fileList = await fileRef.listAll();
+
+        await downloadImages(fileList.items, storeCode, limit);
+        console.log('[SUCCESS] All files downloaded!');
+    } catch (error) {
+        console.error('[ERROR]', error.message);
     }
 }
 
-function _getFromEnv() {
-    return process.env.KODE_TOKO
-}
-
-async function _saveImage(listFiles) {
-    for (const file of listFiles) {
-        const imageURL = await file.getDownloadURL()
-        fs.mkdirSync(`downloads/${_getFromEnv()}/`, {recursive: true})
-        await _downloadImage(imageURL, file.name)
+async function downloadImages(files, storeCode, limit) {
+    if (!files.length) {
+        console.log('[INFO] No files found to download.');
+        return;
     }
-}
 
-async function _downloadImage(url, name) {
-    return new Promise((resolve, reject) => {
-        axios({
-            url,
-            method: "GET",
-            responseType: 'stream'
-        }).then(async (response) => {
-            if (name.includes(".jpg") || name.includes(".png") || name.includes(".webp") || name.includes("svg")) {
-                response.data.pipe(fs.createWriteStream(`downloads/${_getFromEnv()}/${name}`, { recursive: true }))
-                console.log(name, 'downloaded')
-                resolve(name);
+    const downloadDir = `downloads/${storeCode}/`;
+    fs.mkdirSync(downloadDir, { recursive: true });
+
+    const tasks = files.map((fileRef) =>
+        limit(async () => {
+            const filename = fileRef.name;
+
+            try {
+                const downloadURL = await fileRef.getDownloadURL();
+
+                if (!isImage(filename)) {
+                    console.log(`[SKIPPED] ${filename} is not an image.`);
+                    return;
+                }
+
+                await saveImage(downloadURL, `${downloadDir}${filename}`);
+                console.log(`[DOWNLOADED] ${filename}`);
+            } catch (err) {
+                if (err.code === 'storage/object-not-found') {
+                    console.warn(`[SKIPPED] ${filename} not found in storage.`);
+                } else {
+                    console.error(`[ERROR] Failed to download ${filename}:`, err.message);
+                }
             }
-            resolve("Not Found")
-            // response.data.pipe(fs.createWriteStream(`downloads/${_getFromEnv()}/${name}`, { recursive: true }))
-            // console.log(name, 'downloaded')
-            // resolve(name);
-        }).catch((err) => {
-            reject(err);
         })
-    })
+    );
+
+    await Promise.all(tasks);
 }
 
-main()
+async function saveImage(url, destPath) {
+    const response = await axios.get(url, { responseType: 'stream' });
+    return new Promise((resolve, reject) => {
+        const writer = fs.createWriteStream(destPath);
+        response.data.pipe(writer);
+        writer.on('finish', resolve);
+        writer.on('error', reject);
+    });
+}
+
+function isImage(filename) {
+    return /\.(jpg|jpeg|png|webp|svg)$/i.test(filename);
+}
+
+main();
