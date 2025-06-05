@@ -5,15 +5,18 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node index.js"
+    "start": "nodemon index.js"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "axios": "^0.25.0",
+    "body-parser": "^2.2.0",
     "dotenv": "^10.0.0",
+    "express": "^5.1.0",
     "firebase": "^8.6.8",
     "inquirer": "^8.2.6",
+    "nodemon": "^3.1.10",
     "p-limit": "^6.2.0"
   }
 }
