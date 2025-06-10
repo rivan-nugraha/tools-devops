@@ -1,12 +1,10 @@
-require('dotenv/config');
-const { execUpload } = require('./upload');
-const { execDownload } = require('./download');
 const express = require('express');
 const bodyParser = require('body-parser');
-const fs = require('fs');
-const https = require('https');
+const dotenv = require('dotenv');
+const { Axios } = require('./axios');
 
-require('dotenv')
+dotenv.config();
+
 const app = express()
 const port = process.env.PORT;
 
@@ -20,80 +18,59 @@ app.use((req, res, next) => {
     "Origin, X-Requested-With, Content-Type, Accept, x-auth-token"
     );
     next();
+});
+
+app.post('/copy-nota', async (req, res) => {
+    try {
+        const { ip_from, ip_to, type } = req.body;
+        if (!ip_from || ip_from === "") throw new Error("ip_from is required");
+        if (!ip_to || ip_to === "") throw new Error("ip_to is required");
+        if (!type || type === "") throw new Error("Type must provided");
+
+        const nota = await Axios.get(`${ip_from}/api/v1/nota/get-copy`, { type });
+        await Axios.post(`${ip_from}/api/v1/nota/save-copy`, { data_nota: nota });
+        res.status(200).send("Copy Nota Success");
+    } catch (error) {
+        console.log(error);
+        res.status(500).send(`${error}`);
+    }
+});
+
+app.post('/syncronize-master', async (req, res) => {
+    try {
+        const { ip_pusat, selected_toko } = req.body;
+        if (!ip_pusat || ip_pusat === "") throw new Error("ip_pusat is required");
+
+        const cabangRaw = await Axios.post(`${ip_pusat}/api/v1/tokos/find-by`, { kode_toko: selected_toko });
+        const group_data = await Axios.get(`${ip_pusat}/api/v1/group/get/all`);
+        const dept_data = await Axios.get(`${ip_pusat}/api/v1/jenis/get/all`);
+        const gudang = await Axios.get(`${ip_pusat}/api/v1/gudang/get/all`);
+        const paraPembelian = await Axios.get(`${ip_pusat}/api/v1/parabeli/get/all`);
+        const paraKondisi = await Axios.get(`${ip_pusat}/api/v1/parakondisi/get/all`);
+
+        const cabangs = cabangRaw.filter((data) => data.tipe_toko === "OFFLINE");
+
+        Promise.all(
+            cabangs.map(async (cabang) => {
+                const url = `${cabang.portal}/api/v1`;
+
+                await Axios.post(`${url}/group/syncronize`, group_data);
+                await Axios.post(`${url}/jenis/syncronize`, dept_data);
+                await Axios.post(`${url}/gudang/syncronize`, gudang);
+                await Axios.post(`${url}/parabeli/syncronize`, paraPembelian);
+                await Axios.post(`${url}/parakondisi/syncronize`, paraKondisi);
+
+                console.log(`Syncronize on ${cabang.kode_toko} Success`)
+            })
+        );
+
+        res.status(200).send("Syncronize Success");
+    } catch (error) {
+        console.log(error);
+        res.status(500).send(`${error}`);
+    }
 })
 
-
-app.post('/download', async (req, res) => {
-    try {
-        const kode_toko = req.body.kode_toko;
-        await execDownload(kode_toko);
-        res.status(200).send(`Download Image Kode Toko: ${kode_toko} SUCCESS`)
-    } catch (error) {
-        res.status(500).send(error.message);
-    }
+app.listen(port, () => {
+    console.log(`App listening on port: ${port}`);
 });
-
-app.post('/upload', async (req, res) => {
-    try {
-        const kode_toko = req.body.kode_toko;
-        await execUpload(kode_toko);
-        res.status(200).send(`Upload Image Kode Toko: ${kode_toko} SUCCESS`)
-    } catch (error) {
-        res.status(500).send(error.message);
-    }
-});
-
-if (!Number(process.env.IS_HTTPS)) {
-    listener = app.listen(port, () => {
-        console.log(`App listening on port: ${port}`);
-    });
-} else {
-    const key = fs.readFileSync("/home/nodeapp/cert/private.key");
-    const cert = fs.readFileSync("/home/nodeapp/cert/fullchain.pem");
-    const ca = fs.readFileSync("/home/nodeapp/cert/ca_bundle.crt");
-    const credentials = { key, cert, ca };
-    const httpsServer = https.createServer(credentials, this.app);
-    listener = httpsServer.listen(port, () =>
-        console.log(`Https app listening on port: ${port}`)
-    );
-}
-
-// async function getInquirer() {
-//     const { default: inquirer } = await import('inquirer');
-//     return inquirer;
-// }
-
-// async function main() {
-//     try {
-//         const inquirer = await getInquirer();
-
-//         const answer = await inquirer.prompt([
-//             {
-//                 type:"input",
-//                 name:"kode_toko",
-//                 message: "Silahkan masukan kode toko",
-//                 default: "NQC"
-//             },
-//             {
-//                 type: 'list',
-//                 name: 'mode',
-//                 message: 'Pilih aksi yang ingin dijalankan:',
-//                 choices: [
-//                 { key: "u", name: '📤 Upload Gambar', value: 'upload' },
-//                 { key: "d", name: '📥 Download Gambar', value: 'download' },
-//                 ],
-//             },
-//         ]);
-        
-//         const mode = answer.mode;
-//         const kode_toko = answer.kode_toko;
-
-//         if (mode === 'upload') {
-//             await execUpload(kode_toko);
-//         } else if (mode === 'download') {
-//             await execDownload(kode_toko);
-//         }
-//     } catch (err) {
-//         console.error('❌ Terjadi kesalahan:', err.message);
-//     }
-// }
