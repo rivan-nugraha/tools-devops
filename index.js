@@ -28,7 +28,8 @@ app.post('/copy-nota', async (req, res) => {
         if (!type || type === "") throw new Error("Type must provided");
 
         const nota = await Axios.get(`${ip_from}/api/v1/nota/get-copy`, { type });
-        await Axios.post(`${ip_from}/api/v1/nota/save-copy`, { data_nota: nota });
+        console.log(nota);
+        await Axios.post(`${ip_to}/api/v1/nota/save-copy`, { data_nota: nota });
         res.status(200).send("Copy Nota Success");
     } catch (error) {
         console.log(error);
