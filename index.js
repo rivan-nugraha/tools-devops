@@ -43,7 +43,8 @@ app.post('/syncronize-master', async (req, res) => {
         if (!ip_pusat || ip_pusat === "") throw new Error("ip_pusat is required");
 
         const cabangRaw = await Axios.post(`${ip_pusat}/api/v1/tokos/find-by`, { kode_toko: selected_toko });
-        const group_data = await Axios.get(`${ip_pusat}/api/v1/group/get/all`);
+        const baki = await Axios.get(`${ip_pusat}/api/v1/baki/get/all`);
+        const data_group = await Axios.get(`${ip_pusat}/api/v1/group/get/all`);
         const dept_data = await Axios.get(`${ip_pusat}/api/v1/jenis/get/all`);
         const gudang = await Axios.get(`${ip_pusat}/api/v1/gudang/get/all`);
         const paraPembelian = await Axios.get(`${ip_pusat}/api/v1/parabeli/get/all`);
@@ -55,11 +56,12 @@ app.post('/syncronize-master', async (req, res) => {
             cabangs.map(async (cabang) => {
                 const url = `${cabang.portal}/api/v1`;
 
-                await Axios.post(`${url}/group/syncronize`, group_data);
-                await Axios.post(`${url}/jenis/syncronize`, dept_data);
-                await Axios.post(`${url}/gudang/syncronize`, gudang);
-                await Axios.post(`${url}/parabeli/syncronize`, paraPembelian);
-                await Axios.post(`${url}/parakondisi/syncronize`, paraKondisi);
+                await Axios.post(`${url}/baki/syncronize`, { baki_data: baki });
+                await Axios.post(`${url}/group/syncronize`, { data_group });
+                await Axios.post(`${url}/jenis/syncronize`, { dept_data });
+                await Axios.post(`${url}/gudang/syncronize`, { gudang });
+                await Axios.post(`${url}/parabeli/syncronize`, { paraPembelian });
+                await Axios.post(`${url}/parakondisi/syncronize`, { paraKondisi });
 
                 console.log(`Syncronize on ${cabang.kode_toko} Success`)
             })
