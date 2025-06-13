@@ -29,7 +29,7 @@ app.post('/copy-nota', async (req, res) => {
 
         const nota = await Axios.get(`${ip_from}/api/v1/nota/get-copy`, { type });
         console.log(nota);
-        await Axios.post(`${ip_to}/api/v1/nota/save-copy`, { data_nota: nota });
+        await Axios.post(`${ip_to}/api/v1/nota/save-copy`, { data_nota: nota, type });
         res.status(200).send("Copy Nota Success");
     } catch (error) {
         console.log(error);
